@@ -1,0 +1,29 @@
+{
+  "name": "telegram-dynamic-stickers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "glob": "^7.1.6",
+    "iconv-lite": "^0.6.2",
+    "jimp": "^0.14.0",
+    "smart-promisify": "^1.0.5",
+    "telegraf": "^3.38.0",
+    "yarn": "^1.22.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vzhilov/telegram-dynamic-stickers.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vzhilov/telegram-dynamic-stickers/issues"
+  },
+  "homepage": "https://github.com/vzhilov/telegram-dynamic-stickers#readme"
+}
