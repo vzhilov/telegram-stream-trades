@@ -6,7 +6,7 @@ const telegraf = require("telegraf");
 const glob = require("glob")
 const fs = require('fs');
 const iconv = require('iconv-lite');
-
+ 
 // Get environment variables
 dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.TOKEN);
