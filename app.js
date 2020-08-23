@@ -57,7 +57,7 @@ function inixXValues (period){
 
 
 
-}
+
 /**
 const stickerSetName = 'phpSuckedSeconds';
 bot.start(async (ctx) => {
