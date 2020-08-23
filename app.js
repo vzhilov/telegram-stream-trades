@@ -12,6 +12,7 @@ dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.TOKEN);
 const ownerId = process.env.ADMIN;
 const tgMsgs = `${__dirname}/messages/*.txt`;
+const daysOfWeek = ['пн', 'вт', 'ср', 'чт', 'пт']
 
 setInterval(streamTrades, 60 * 1000);
 
@@ -22,7 +23,7 @@ function streamTrades() {
             fs.readFile(file, (err, data) => {
                 if (err) throw err;
                 else {
-                    var message = iconv.decode(data, "win1251").toString();
+                    const message = iconv.decode(data, "win1251").toString();
                     bot.telegram.sendMessage(ownerId, message);
                 }
             });
@@ -30,7 +31,33 @@ function streamTrades() {
     })
 }
 
+function inixYValues () {
 
+
+    genTradeGraph(xData, yData)
+}
+
+function genTradeGraph (x, y) {
+
+    
+}
+
+function inixXValues (period){
+    switch(period) {
+        case 'd':
+            return daysOfWeek;
+            break
+        case 'w':
+
+        case 'm':
+    }
+}
+
+
+
+
+
+}
 /**
 const stickerSetName = 'phpSuckedSeconds';
 bot.start(async (ctx) => {
