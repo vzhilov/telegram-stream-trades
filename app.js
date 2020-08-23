@@ -30,7 +30,7 @@ function streamTrades() {
         })   
     })
 }
-
+ 
 function inixYValues (period) {
 
 
