@@ -31,7 +31,7 @@ function streamTrades() {
     })
 }
 
-function inixYValues () {
+function inixYValues (period) {
 
 
     genTradeGraph(xData, yData)
@@ -39,7 +39,7 @@ function inixYValues () {
 
 function genTradeGraph (x, y) {
 
-    
+
 }
 
 function inixXValues (period){
