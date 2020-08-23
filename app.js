@@ -1,30 +1,30 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-// Get environment variables
-const dotenv = require("dotenv");
-dotenv.config({ path: `${__dirname}/.env` });
-const telegraf = require("telegraf");
+//Object.defineProperty(exports, "__esModule", { value: true });
 // Dependencies
-//const textToPicture = require("text-to-picture");
+const dotenv = require("dotenv");
+const telegraf = require("telegraf");
+const glob = require("glob")
+const fs = require('fs');
+const iconv = require('iconv-lite');
+
+// Get environment variables
+dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.TOKEN);
 const ownerId = process.env.ADMIN;
-
-const glob = require("glob")
-var filePath = `${__dirname}/messages/*.txt`;
-const fs = require('fs');
-
-const iconv = require('iconv-lite');
+const tgMsgs = `${__dirname}/messages/*.txt`;
 
 setInterval(streamTrades, 60 * 1000);
 
 function streamTrades() {
-    glob(filePath, function (er, files) {
+    glob(tgMsgs, function (er, files) {
         files.forEach(function(file, i, arr) {
             console.log(file)
             fs.readFile(file, (err, data) => {
                 if (err) throw err;
-                var message = iconv.decode(data, "win1251").toString();
-                bot.telegram.sendMessage(ownerId, message);
+                else {
+                    var message = iconv.decode(data, "win1251").toString();
+                    bot.telegram.sendMessage(ownerId, message);
+                }
             });
         })   
     })
