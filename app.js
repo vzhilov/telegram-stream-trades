@@ -7,14 +7,19 @@ const glob = require("glob")
 const fs = require('fs');
 const iconv = require('iconv-lite');
 const cronJob = require('cron').CronJob;
+const Chart = require('chart.js');
+const { CanvasRenderService } = require('chartjs-node-canvas');        
+
 
 // Get environment variables
 dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.BOT_TOKEN);
 const channelId = process.env.CHANNEL_ID;
-const tgMsgs = `${__dirname}/messages/*.txt`;
-const daysOfWeek = ['пн', 'вт', 'ср', 'чт', 'пт']
-const dailygraphJob = new cronJob('* */3 * * * *', streamTrades())
+const tgMsgs = `${__dirname}/messages/`;
+//const daysOfWeek = {пн: 0, вт: 0, ср: 0, чт: 0, пт: 0}
+const dailygraphJob = new cronJob('0 */3 * * * *', function() {
+    streamTrades()
+}, null, false, 'Europe/Moscow')
 
 const devMode = false
 
@@ -23,52 +28,211 @@ if (!devMode) {
 
 
 } else {
-
+    const axes = getAxes('d')
+    console.log(axes)
+    genTradeGraph(axes['x'], axes['y1'], axes['y2'], axes['m'], 'd')
 
 }
 
+ 
+function getAxes (period) {
+    let xy = {}
+    const quikLog = process.env.QUIK_LOGFILE;
+    const yMcxFile = tgMsgs + 'micex' + period + ".indx"
+    const yLog = fs.readFileSync(quikLog, 'utf8')
+    const yMcx = fs.readFileSync(yMcxFile, 'utf8')
+    const yLogArr = yLog.split("\n").filter(function (el) {
+        return el != '';
+      });
+    const m = yMcx.split(",").filter(function (el) {
+        return el != '';
+      });
+    switch(period) {
+        case 'd':
+            xy = {"10:00": 0, "11:00": 0,"12:00": 0,"13:00": 0,"14:00": 0,"15:00": 0,"16:00": 0,"17:00": 0,"18:00": 0,"19:00": 0,};
+            
+            yLogArr.forEach(function (fline) {
+                if (fline.length) {
+                    const lineArr = fline.split(",")
+                    const fCloseDate = new Date(lineArr[1])
+                    const fCloseProfit = lineArr[7].trim()
+                    const curDate = new Date()
+                    let key = 0
+                    
+                    if (curDate.getFullYear() == fCloseDate.getFullYear() && curDate.getMonth() == fCloseDate.getMonth() && curDate.getDate() == fCloseDate.getDate()) {
+                        key = (Number(fCloseDate.getHours()) + 1) + ":00"
+                        xy[key] = Math.floor(Number(fCloseProfit))
+                    }
+                }
+            })
+
+        break
+        case 'w':
+
+        break
+        case 'm':
+
+        break
+    }
+    let res = {}, x = [], y1 = [], y2 = [], cum = 0
+    
+    
+    for (const [key, value] of Object.entries(xy)) {
+        x.push(key)
+        y1.push(value)
+        cum = cum + value
+        y2.push(cum)
+    }
+
+    res['x'] = x
+    res['y1'] = y1
+    res['y2'] = y2
+    res['m'] = m
+    return res
+}
+
+function genTradeGraph (x, y1, y2, m, period) {
+
+    const width = 600;
+    const height = 400;
+
+    const chartJsFactory = () => {
+        require('chartjs-plugin-datalabels');
+        delete require.cache[require.resolve('chart.js')];
+        delete require.cache[require.resolve('chartjs-plugin-datalabels')];
+        return Chart;
+    }
+
+    const canvasRenderService = new CanvasRenderService(width, height, undefined, undefined, chartJsFactory);
+
+    (async () => {
+    const configuration = {
+        type: 'bar',
+        data: {
+            datasets: [
+                {
+                    type:"bar",
+                    yAxisID: 'left-y-axis',
+                    barThickness: 24,
+                    label: 'My dataset1',
+                    data: y1,
+                    backgroundColor: 'rgba(75,192, 192, 0.2)',
+                    borderColor: 'rgba(54, 162, 135, 0.2)',
+                    borderWidth: 1,
+                    datalabels: {
+                        align: 'center',
+                        anchor: 'center',
+
+                            backgroundColor: function(context) {
+                                //return context.dataset.backgroundColor;
+                            },
+                            borderRadius: 4,
+                            color: 'rgba(75,192, 192, 0.8)',
+                            
+                         
+                            formatter: function(value, context) {
+                                if (value > 0)
+                                    return "+" + Math.round(value)
+                                else 
+                                    return "-" + Math.round(value)
+                            },
+                            display: function(context) {
+                                return context.dataset.data[context.dataIndex] > 1; // or >= 1 or ...
+                             }
+                        
+
+
+                    }
+                }, 
+                {
+                    type:"line",
+                    yAxisID: 'left-y-axis',
+                    label: 'My dataset2',
+                    data: y2,
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderColor: 'rgba(54, 162, 135, 1)',
+                    //borderWidth: 1,
+                    datalabels: {
+                        align: 'end',
+                        anchor: 'end'
+                    }
+                }, 
+                
+                {
+                    type:"line",
+                    yAxisID: 'right-y-axis',
+                    //barThickness: 24,
+                    label: 'My dataset3',
+                    data: m,
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderColor: 'rgba(54, 162, 135, 0.2)',
+                    borderWidth: 1,
+                    datalabels: {
+                        align: 'start',
+                        anchor: 'start'
+                    }
+                }, 
+ 
+            ],
+                labels: x,
+        },
+
+        options: {
+            scales: {
+                yAxes: [
+                    {
+                        id: 'left-y-axis',
+                        position: 'left',
+                        //stacked: false,
+                        ticks: {
+                            //beginAtZero: true,
+                            callback: (value) => value + "R"
+                        },
+                    },
+                    {
+                        id: 'right-y-axis',
+                        position: 'right',
+                        ticks: {
+                            //beginAtZero: false,
+                            //callback: (value) => value + "R"
+                        },
+
+                    }
+                ],
+                xAxes: [{
+                    stacked: true,
+
+                }]
+            },
+            plugins: {
+
+            }
+        }
+    };
+    const image = await canvasRenderService.renderToBuffer(configuration);
+    fs.writeFileSync(tgMsgs + "test.png", image)        
+    })(); 
+
+}
+
+
 function streamTrades() {
-    glob(tgMsgs, function (er, files) {
+    console.log("Cron" + new Date())
+    const txtFiles = tgMsgs + "*.txt"
+    glob(txtFiles, function (er, files) {
         files.forEach(function(file, i, arr) {
             console.log(file)
             fs.readFile(file, (err, data) => {
                 if (err) throw err;
                 else {
                     const message = iconv.decode(data, "win1251").toString();
-                    bot.telegram.sendMessage(channelId, message);
+                    bot.telegram.sendMessage(channelId, message, {parse_mode: 'HTML'});
                     fs.unlinkSync(file)
                 }
             });
         })   
     })
 }
- 
-function inixYValues (period) {
-
-
-    genTradeGraph(xData, yData)
-}
-
-function genTradeGraph (x, y) {
-
-
-}
-
-function inixXValues (period){
-    switch(period) {
-        case 'd':
-            return daysOfWeek;
-            break
-        case 'w':
-
-        case 'm':
-    }
-}
-
-
-
-
-
 
 /**
 const stickerSetName = 'phpSuckedSeconds';
