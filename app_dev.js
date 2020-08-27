@@ -9,6 +9,7 @@ const iconv = require('iconv-lite');
 const cronJob = require('cron').CronJob;
 const Chart = require('chart.js');
 const { CanvasRenderService } = require('chartjs-node-canvas');        
+const { title } = require("process");
 
 
 // Get environment variables
@@ -28,14 +29,16 @@ if (!devMode) {
 
 
 } else {
-    const axes = getAxes('d')
-    console.log(axes)
-    genTradeGraph(axes['x'], axes['y1'], axes['y2'], axes['m'], 'd')
+
+    //const axes = getAxes('d')
+    //console.log(axes)
+    genTradeGraph ('m') 
+    //genTradeGraph(axes['x'], axes['y1'], axes['y2'], axes['m'], 'd')
 
 }
 
  
-function getAxes (period) {
+function genTradeGraph (period) {
     let xy = {}
     const quikLog = process.env.QUIK_LOGFILE;
     const yMcxFile = tgMsgs + 'micex' + period + ".indx"
@@ -47,6 +50,8 @@ function getAxes (period) {
     const m = yMcx.split(",").filter(function (el) {
         return el != '';
       });
+    const curDate = new Date()
+
     switch(period) {
         case 'd':
             xy = {"10:00": 0, "11:00": 0,"12:00": 0,"13:00": 0,"14:00": 0,"15:00": 0,"16:00": 0,"17:00": 0,"18:00": 0,"19:00": 0,};
@@ -56,21 +61,59 @@ function getAxes (period) {
                     const lineArr = fline.split(",")
                     const fCloseDate = new Date(lineArr[1])
                     const fCloseProfit = lineArr[7].trim()
-                    const curDate = new Date()
+
                     let key = 0
                     
                     if (curDate.getFullYear() == fCloseDate.getFullYear() && curDate.getMonth() == fCloseDate.getMonth() && curDate.getDate() == fCloseDate.getDate()) {
                         key = (Number(fCloseDate.getHours()) + 1) + ":00"
-                        xy[key] = Math.floor(Number(fCloseProfit))
+                        //console.log(fCloseDate + " | " + fCloseProfit + " | " + key)
+                        xy[key] = Math.floor(Number(xy[key]) + Number(fCloseProfit))
                     }
                 }
             })
 
         break
         case 'w':
+            xy = {"пн": 0, "вт": 0,"ср": 0,"чт": 0,"пт": 0};
+
+
+            yLogArr.forEach(function (fline) {
+                if (fline.length) {
+                    const lineArr = fline.split(",")
+                    const fCloseDate = new Date(lineArr[1])
+                    const fCloseProfit = lineArr[7].trim()
+
+                    let key = 0
+                    let weekDays = ['пн', 'вт', 'ср', 'чт', 'пт', ]
+                    
+                    if (lastSunday < fCloseDate) {
+                        key =  weekDays[Number(fCloseDate.getDay())-1]
+                        console.log(fCloseDate + " | " + fCloseProfit + " | " + key)
+                        xy[key] = Math.floor(Number(xy[key]) + Number(fCloseProfit))
+                    }
+                }
+            })
 
         break
         case 'm':
+            const lastSunday = new Date(curDate.setDate(curDate.getDate() - curDate.getDay()))
+            const sixWeeksAgoSunday = new Date(lastSunday.setDate(lastSunday.getDate() - 42))
+
+            yLogArr.forEach(function (fline) {
+                if (fline.length) {
+                    const lineArr = fline.split(",")
+                    const fCloseDate = new Date(lineArr[1])
+                    const fCloseProfit = lineArr[7].trim()
+
+                    if (sixWeeksAgoSunday < fCloseDate) {
+                        fCloseDate.setDate(fCloseDate.getDate() + 5 - fCloseDate.getDay())
+                        let key = humanDate(fCloseDate)
+                        //console.log(fCloseDate + " | " + fCloseProfit + " | " + key + " | " + fCloseFriday)
+                        if (isNaN(xy[key])) xy[key] = 0
+                        xy[key] = Math.floor(Number(xy[key]) + Number(fCloseProfit))
+                    }
+                }
+            })
 
         break
     }
@@ -84,14 +127,22 @@ function getAxes (period) {
         y2.push(cum)
     }
 
+/**
     res['x'] = x
     res['y1'] = y1
     res['y2'] = y2
     res['m'] = m
-    return res
+*/
+    //console.log(res)
+    
+    drawGraph (x, y1, y2, m, period)
 }
 
-function genTradeGraph (x, y1, y2, m, period) {
+function drawGraph (x, y1, y2, m, period) {
+
+
+    let title = ""
+    if (period == 'd') title = "день"
 
     const width = 600;
     const height = 400;
@@ -113,48 +164,45 @@ function genTradeGraph (x, y1, y2, m, period) {
                 {
                     type:"bar",
                     yAxisID: 'left-y-axis',
-                    barThickness: 24,
-                    label: 'My dataset1',
+                    //barThickness: 24,
+                    label: 'Почасовой',
                     data: y1,
-                    backgroundColor: 'rgba(75,192, 192, 0.2)',
+                    backgroundColor: 'rgba(54, 162, 135, 0.2)', //'rgba(75,192, 192, 0.2)',
                     borderColor: 'rgba(54, 162, 135, 0.2)',
                     borderWidth: 1,
                     datalabels: {
                         align: 'center',
                         anchor: 'center',
 
-                            backgroundColor: function(context) {
-                                //return context.dataset.backgroundColor;
-                            },
-                            borderRadius: 4,
-                            color: 'rgba(75,192, 192, 0.8)',
-                            
-                         
-                            formatter: function(value, context) {
-                                if (value > 0)
-                                    return "+" + Math.round(value)
-                                else 
-                                    return "-" + Math.round(value)
-                            },
-                            display: function(context) {
-                                return context.dataset.data[context.dataIndex] > 1; // or >= 1 or ...
-                             }
+                        //backgroundColor: 'rgba(54, 162, 135, 0.1)',
+                        //function(context) {return context.dataset.backgroundColor;},
+                        borderRadius: 4,
+                        color: 'rgba(54, 162, 135, 0.8)',//'rgba(75,192, 192, 0.8)',
                         
-
-
+                        formatter: function(value, context) {
+                            if (value > 0)
+                                return "+" + Math.round(value)
+                            else 
+                                return Math.round(value)
+                        },
+                        display: function(context) {
+                            return context.dataset.data[context.dataIndex] != 0; // or >= 1 or ...
+                        }
                     }
                 }, 
                 {
                     type:"line",
                     yAxisID: 'left-y-axis',
-                    label: 'My dataset2',
+                    label: 'Накопительный',
                     data: y2,
                     backgroundColor: 'rgba(255, 255, 255, 0.2)',
                     borderColor: 'rgba(54, 162, 135, 1)',
-                    //borderWidth: 1,
+                    borderWidth: 2,
+                    lineTension: 0.3,
                     datalabels: {
                         align: 'end',
-                        anchor: 'end'
+                        anchor: 'end',
+                        color: 'rgba(54, 162, 135, 1)', //'rgba(75,192, 192, 1)',
                     }
                 }, 
                 
@@ -162,14 +210,15 @@ function genTradeGraph (x, y1, y2, m, period) {
                     type:"line",
                     yAxisID: 'right-y-axis',
                     //barThickness: 24,
-                    label: 'My dataset3',
+                    label: 'Индекс ММВБ',
                     data: m,
                     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    borderColor: 'rgba(54, 162, 135, 0.2)',
+                    borderColor: 'rgba(245, 120, 81, 0.5)', //'rgba(14, 67, 96, 0.2)', //'rgba(234, 78, 106, 0.2)',
+                    borderDash: [20, 3, 3, 3, 3, 3, 3, 3],
                     borderWidth: 1,
                     datalabels: {
-                        align: 'start',
-                        anchor: 'start'
+                        display: false,
+
                     }
                 }, 
  
@@ -178,6 +227,27 @@ function genTradeGraph (x, y1, y2, m, period) {
         },
 
         options: {
+            title: {
+                display: true,
+                text: 'График доходности за ' + title,
+                fontColor: 'rgba(104, 143, 133, 1)',
+                fontSize: '16',
+            },
+            legend: {
+                display: true,
+                labels: {
+                    fontColor: 'rgba(54, 162, 135, 1)',
+                    //padding: '2, 3, 4, 5',
+                }
+            },   
+layout: {
+        padding: {
+            left: 50,
+            right: 0,
+            top: 50,
+            bottom: 0
+        }
+    },                    
             scales: {
                 yAxes: [
                     {
@@ -185,24 +255,41 @@ function genTradeGraph (x, y1, y2, m, period) {
                         position: 'left',
                         //stacked: false,
                         ticks: {
-                            //beginAtZero: true,
-                            callback: (value) => value + "R"
+                            beginAtZero: true,
+                            callback: (value) => value + "₽",
+                            fontColor: 'rgba(104, 143, 133, 1)',
+
                         },
+                        gridLines: {
+                            color: 'rgba(104, 143, 133, 0.2)',
+                            zeroLineColor: 'rgba(104, 143, 133, 0.5)',
+                        },
+
                     },
                     {
                         id: 'right-y-axis',
                         position: 'right',
+                        gridLines: {
+                            display: false,
+                        },
                         ticks: {
-                            //beginAtZero: false,
-                            //callback: (value) => value + "R"
+                            fontColor: 'rgba(245, 120, 81, 0.8)',
                         },
 
                     }
                 ],
-                xAxes: [{
-                    stacked: true,
-
-                }]
+                xAxes: [
+                    {
+                        //stacked: true,
+                        gridLines: {
+                            color: 'rgba(104, 143, 133, 0.2)',
+                            zeroLineColor: 'rgba(104, 143, 133, 0.5)',                            
+                        },
+                        ticks: {
+                            fontColor: 'rgba(104, 143, 133, 1)',
+                        },
+                   }
+                ],
             },
             plugins: {
 
@@ -233,6 +320,11 @@ function streamTrades() {
         })   
     })
 }
+
+function humanDate(date) {
+    return date.getDate() + "-" + ("0" + (date.getMonth()+1)).slice(-2) + "-" + date.getFullYear()
+}
+
 
 /**
 const stickerSetName = 'phpSuckedSeconds';
