@@ -16,6 +16,7 @@ const { title } = require("process");
 dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.BOT_TOKEN);
 const channelId = process.env.CHANNEL_ID;
+const merchantToken = process.env.MERCHANT_TOKEN;
 const tgMsgs = `${__dirname}/messages/`;
 const streamTradesJob = new cronJob('0 */3 * * * *', function() {streamTrades()}, null, false, 'Europe/Moscow')
 const dailyGraphJob = new cronJob('0 0 19 * * 1-5', function() {genTradeGraph ('d')}, null, false, 'Europe/Moscow')
@@ -31,14 +32,110 @@ if (!devMode) {
     monthlyGraphJob.start()
 } else {
 
-    //const axes = getAxes('d')
-    //console.log(axes)
-    genTradeGraph ('m') 
-    //genTradeGraph(axes['x'], axes['y1'], axes['y2'], axes['m'], 'd')
+    //genTradeGraph ('m') 
+    merchantBot()
+
+    
 
 }
 
- 
+function merchantBot() {
+
+    const startMsg = "/info - описание систмы \n\
+    /profit - график доходности за месяц \n\
+    /buy - приобрести роботов \n\
+    @StreamTrade = канал с трансляцией сделок и доходности в реальном времени"
+    
+    const buyButton = telegraf.Extra
+    .markdown()
+    .markup((m) => m.inlineKeyboard([
+        m.callbackButton("Купить роботов", "buy")
+    ]))
+
+    const infoMsg = "\
+        Система ботов для торговли\n\
+    \n\
+        Моя система торговли состоит из трех торговых программ (торговых ботов) и \
+    по желанию дополнительной программы @StereamTrades для транслирования сделок и доходности в Telegram.\n\
+    \n\
+        <b>Бот Профайлер</b> - это первый бот, анализирующих историчесике данные котировок более чем 200 акций торгуемых на ММВБ и составляющий профили бумаг\n\
+    \n\
+        <b>Бот Трейдер</b> - бот, который сопоставляет текущие котировки акций с профилями бумаг, составленные Профайлером. \
+    Если бот настроен для работы в ручном режиме, он только рекомендует рекомендует открытие и \
+    закрытие позицый, но сам не совершает никаких сделок. В полуавтоматическом режиме бот может торговать \
+    самостоятельно, но только в случаях резкого изменения котировок по бумагам, чтобы не упустить \
+    момент бурного роста или падения.\n\
+    \n\
+        В полностью автоматическом режиме бот совершает всё торговлю сам.\n\
+    \n\
+        Бот Логгер - бот, который ведет журнал сделок и регистрирует доходность по каждой закрытой позиции.\n\
+    \n\
+        Бот Стриммер - отдельная от торговой системы программа, позволяющая трансилоровать результаты работы\
+    системы в открытиые или приватный канал Telegram.\n\
+    \n\
+        <u>Пример использования</u>\n\
+    \n\
+        Я использую своих ботов в полуавтоматическом режиме, когда они открывают позиции сами только в \
+    случае выстрела бумаги и закрывают позиции в случае чрезвычайно высокой доходности. Я сам регулярно \
+    промастриваю открытые позиции и закрываю их вручную, если накомленная доходность меня устраивает.\n\
+    \n\
+        Паралельно с слежу за остальныеми рекомендациями, которые дает Бот Трейдер, открываю графики \
+    рекомендуемых им бумаг, дополнительно провожу теханализ самостоятельно и принимаю решение об \
+    открытии таких позиций вручную"
+    
+    const invoice = {
+        provider_token: merchantToken,
+        start_parameter: 'online_conslutation',
+        title: 'Онлайн консультация Айболит',
+        description: 'Проведение Онлайн консультации с врачем. Стоимость 1000 рублей. Длительность 1час',
+        currency: 'RUB',
+        photo_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcThWVMksAXRtRQJn3oHFWyz9FMusRty4pQX5Iobe8OfMEJmRzpD&usqp=CAU',
+        need_shipping_address: false,
+        is_flexible: false,
+        prices: [
+            { label: 'Онлайн консультация', amount: 6790000 }
+        ],
+        payload: {}
+    
+    };
+
+
+    bot.start((ctx) => {
+        ctx.reply(startMsg, buyButton)
+    })
+    
+    bot.action('buy', (ctx) => ctx.replyWithInvoice(invoice));
+    bot.command('buy', (ctx) => ctx.replyWithInvoice(invoice));
+    bot.command('profit', (ctx) => {
+        genTradeGraph ('m')
+    })
+    bot.command('info', (ctx) => {
+        ctx.reply(infoMsg, buyButton, { parse_mode: 'HTML' })
+    })
+
+
+
+
+
+
+
+    bot.on('pre_checkout_query', (ctx) => {
+        ctx.answerPreCheckoutQuery(true)
+    })
+    
+    bot.on('message', (ctx) => {
+        if (ctx.update.message.successful_payment != undefined) {
+            ctx.reply('Thanks for the purchase!')
+        } else {
+            // Handle other message types, subtypes
+        }
+    })
+
+
+    bot.launch()
+}
+
+
 function genTradeGraph (period) {
     let xy = {}
     const quikLog = process.env.QUIK_LOGFILE;

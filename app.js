@@ -31,10 +31,27 @@ if (!devMode) {
     monthlyGraphJob.start()
 } else {
 
-    //const axes = getAxes('d')
-    //console.log(axes)
-    genTradeGraph ('m') 
-    //genTradeGraph(axes['x'], axes['y1'], axes['y2'], axes['m'], 'd')
+    //genTradeGraph ('m') 
+    const invoice = {
+        provider_token: payment_tocken,
+        start_parameter: 'online_conslutation',
+        title: 'Онлайн консультация Айболит',
+        description: 'Проведение Онлайн консультации с врачем. Стоимость 1000 рублей. Длительность 1час',
+        currency: 'RUB',
+        photo_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcThWVMksAXRtRQJn3oHFWyz9FMusRty4pQX5Iobe8OfMEJmRzpD&usqp=CAU',
+        need_shipping_address: false,
+        is_flexible: true,
+        prices: [
+            { label: 'Онлайн консультация', amount: 10000 }
+        ],
+        payload: {}
+    
+    };
+
+    bot.start((ctx) => ctx.reply('Welcome'))
+    bot.command('buy', (ctx) => ctx.replyWithInvoice(invoice));
+    bot.launch()
+
 
 }
 
