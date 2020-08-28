@@ -17,17 +17,18 @@ dotenv.config({ path: `${__dirname}/.env` });
 const bot = new telegraf.default(process.env.BOT_TOKEN);
 const channelId = process.env.CHANNEL_ID;
 const tgMsgs = `${__dirname}/messages/`;
-//const daysOfWeek = {пн: 0, вт: 0, ср: 0, чт: 0, пт: 0}
-const dailygraphJob = new cronJob('0 */3 * * * *', function() {
-    streamTrades()
-}, null, false, 'Europe/Moscow')
+const streamTradesJob = new cronJob('0 */3 * * * *', function() {streamTrades()}, null, false, 'Europe/Moscow')
+const dailyGraphJob = new cronJob('0 0 19 * * 1-5', function() {genTradeGraph ('d')}, null, false, 'Europe/Moscow')
+const weeklyGraphJob = new cronJob('0 0 19 * * 6', function() {genTradeGraph ('w')}, null, false, 'Europe/Moscow')
+const monthlyGraphJob = new cronJob('0 0 20 1 * *', function() {genTradeGraph ('w')}, null, false, 'Europe/Moscow')
 
 const devMode = true
 
 if (!devMode) {
-    dailygraphJob.start()
-
-
+    streamTradesJob.start()
+    dailyGraphJob.start()
+    weeklyGraphJob.start()
+    monthlyGraphJob.start()
 } else {
 
     //const axes = getAxes('d')
@@ -75,7 +76,6 @@ function genTradeGraph (period) {
         break
         case 'w':
             xy = {"пн": 0, "вт": 0,"ср": 0,"чт": 0,"пт": 0};
-
 
             yLogArr.forEach(function (fline) {
                 if (fline.length) {
@@ -143,6 +143,8 @@ function drawGraph (x, y1, y2, m, period) {
 
     let title = ""
     if (period == 'd') title = "день"
+    if (period == 'w') title = "неделю"
+    if (period == 'm') title = "месяц"
 
     const width = 600;
     const height = 400;
@@ -240,14 +242,6 @@ function drawGraph (x, y1, y2, m, period) {
                     //padding: '2, 3, 4, 5',
                 }
             },   
-layout: {
-        padding: {
-            left: 50,
-            right: 0,
-            top: 50,
-            bottom: 0
-        }
-    },                    
             scales: {
                 yAxes: [
                     {
@@ -296,8 +290,18 @@ layout: {
             }
         }
     };
+
     const image = await canvasRenderService.renderToBuffer(configuration);
-    fs.writeFileSync(tgMsgs + "test.png", image)        
+   
+    
+    if(devMode) {
+        fs.writeFileSync(tgMsgs + "test.png", image)
+   
+    } else {
+        bot.telegram.sendPhoto(channelId, {source: image});
+
+
+    }
     })(); 
 
 }
