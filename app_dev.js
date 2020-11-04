@@ -3,6 +3,8 @@
 // Dependencies
 const dotenv = require("dotenv");
 const telegraf = require("telegraf");
+//const Extra = require('telegraf/extra')
+//const Markup = require('telegraf/markup')
 const glob = require("glob")
 const fs = require('fs');
 const iconv = require('iconv-lite');
@@ -30,6 +32,7 @@ if (!devMode) {
     dailyGraphJob.start()
     weeklyGraphJob.start()
     monthlyGraphJob.start()
+	merchantBot()
 } else {
 
     //genTradeGraph ('m') 
@@ -39,81 +42,107 @@ if (!devMode) {
 
 }
 
+
+
+
+
+
 function merchantBot() {
 
-    const startMsg = "/info - описание систмы \n\
-    /profit - график доходности за месяц \n\
-    /buy - приобрести роботов \n\
-    @StreamTrade = канал с трансляцией сделок и доходности в реальном времени"
-    
-    const buyButton = telegraf.Extra
-    .markdown()
+    const qaButtons = telegraf.Extra
+    .HTML()
     .markup((m) => m.inlineKeyboard([
-        m.callbackButton("Купить роботов", "buy")
-    ]))
+			[m.callbackButton("Описание ботов", "description"), m.callbackButton("Стоимость", "price")],
+			[m.callbackButton("Режимы торговли", "modes"), m.callbackButton("Пример использования", "example")],
+			[m.callbackButton("График доходности за месяц", "profit"), m.callbackButton("Трансляция сделок", "channel")],
+			[m.callbackButton("Купить ботов", "buy")],
+		],
+	))
 
-    const infoMsg = "\
-        Система ботов для торговли\n\
-    \n\
-        Моя система торговли состоит из трех торговых программ (торговых ботов) и \
-    по желанию дополнительной программы @StereamTrades для транслирования сделок и доходности в Telegram.\n\
-    \n\
-        <b>Бот Профайлер</b> - это первый бот, анализирующих историчесике данные котировок более чем 200 акций торгуемых на ММВБ и составляющий профили бумаг\n\
-    \n\
-        <b>Бот Трейдер</b> - бот, который сопоставляет текущие котировки акций с профилями бумаг, составленные Профайлером. \
-    Если бот настроен для работы в ручном режиме, он только рекомендует рекомендует открытие и \
-    закрытие позицый, но сам не совершает никаких сделок. В полуавтоматическом режиме бот может торговать \
-    самостоятельно, но только в случаях резкого изменения котировок по бумагам, чтобы не упустить \
-    момент бурного роста или падения.\n\
-    \n\
-        В полностью автоматическом режиме бот совершает всё торговлю сам.\n\
-    \n\
-        Бот Логгер - бот, который ведет журнал сделок и регистрирует доходность по каждой закрытой позиции.\n\
-    \n\
-        Бот Стриммер - отдельная от торговой системы программа, позволяющая трансилоровать результаты работы\
-    системы в открытиые или приватный канал Telegram.\n\
-    \n\
-        <u>Пример использования</u>\n\
-    \n\
-        Я использую своих ботов в полуавтоматическом режиме, когда они открывают позиции сами только в \
-    случае выстрела бумаги и закрывают позиции в случае чрезвычайно высокой доходности. Я сам регулярно \
-    промастриваю открытые позиции и закрываю их вручную, если накомленная доходность меня устраивает.\n\
-    \n\
-        Паралельно с слежу за остальныеми рекомендациями, которые дает Бот Трейдер, открываю графики \
-    рекомендуемых им бумаг, дополнительно провожу теханализ самостоятельно и принимаю решение об \
-    открытии таких позиций вручную"
-    
+    const backButton = telegraf.Extra
+    .HTML()
+    .markup((m) => m.inlineKeyboard([
+			[m.callbackButton("⬅️ Назад", "start")],
+		],
+	))
+
+    const startMsg = "Торговая система @StreamTrades состоит из комплекса торговых программ (ботов) для работы на бирже ММВБ"
+	
+    const desctiptionMsg = "\
+<b>&gt      Система ботов для торговли</b>\n\
+\n\
+        Данная система торговли состоит из трех торговых программ (торговых ботов) и \
+по желанию дополнительной программы @StreamTrades для транслирования сделок и доходности в Telegram.\n\
+\n\
+        <b>Бот профайлер</b> - анализирует историчесике данные котировок более чем 200 акций торгуемых на ММВБ и <i>составляет профили бумаг</i>\n\
+\n\
+        <b>Бот трейдер</b> - сопоставляет текущие котировки акций с профилями бумаг, \
+составленнымы Профайлером и <i>выдает рекомендации или сам совершает сделки</i> по открытию и закрытию позиций. \n\
+\n\
+        &#9679; Если бот трейдер настроен для работы в ручном режиме, он только рекомендует открытие и \
+закрытие позицый, но сам не совершает никаких сделок. \n\
+\n\
+        &#9679; В полуавтоматическом режиме бот трейдер так же выдает рекомендации, но может и торговать \
+самостоятельно, но только в случаях резкого изменения котировок по бумагам, чтобы не упустить \
+момент бурного роста или падения.\n\
+\n\
+        &#9679; В полностью автоматическом режиме бот осущетвляет всё торговлю сам.\n\
+\n\
+        <b>Бот Логгер</b> - <i>ведет журнал сделок</i> и регистрирует доходность по каждой закрытой позиции.\n\
+\n\
+        <b>Бот Стриммер</b> - отдельная от торговой системы бесплатная программа, позволяющая трансилоровать результаты работы \
+системы в публиный или приватный канал Telegram.\n\
+\n"
+
+	const exampleMsg = "\
+        <b>Пример использования</b>\n\
+\n\
+        В телеграм канал @StreamTrades транслируются результаты работы бота трейдера, запущенного в полуавтоматическом режиме. \
+Автоматически открываются позиции только в случае выстрела бумаги. Автоматическое закрытие позиций просиходит в случае достижения \
+высокой доходности, либо большого убытка.\n\
+\n\
+        Данные боты являются результатом моих проб и ошибок в торговле на финансовом рынке. И хотя я сам написал этих ботов, я считаю \
+что важные аспекты человеческой жизни, такаие как например финансы, медицина или образвание не дожны быть полностью вверны машинам. \
+Поэтому я использую ботов в полуавтоматическом режиме. Я сам регулярно \
+промастриваю открытые ботами позиции и закрываю их вручную, если накомленная доходность меня устраивает.\n\
+\n\
+        Паралельно слежу за остальными рекомендациями, которые выдаёт бот трейдер, просматриваю графики \
+рекомендуемых им бумаг, дополнительно сам провожу теханализ и принимаю решение об \
+открытии и закрытии позиций.\n\
+\n\
+        Когда я вижу что ситуация на рынке изменилась или когда бот трейдер перестал получать желаюмую доходность, я запускаю бота \
+профайлера, чтобы заново проанализировать рынок и адаптироваться под текущую коньюнктуру."
+   
+	const priceMsg = "За 12 лет торговли я испробовал много стратегий на рынке ММВБ: трендовая торговля, использование индикаторов, торговля только по 'стакану'. \
+	в итоге весь мой опыт свелся к довольно простой системе, которя может использоватся как при торговле внутри дня, так и на больших промежутках.\
+	"
+   
     const invoice = {
         provider_token: merchantToken,
-        start_parameter: 'online_conslutation',
-        title: 'Онлайн консультация Айболит',
-        description: 'Проведение Онлайн консультации с врачем. Стоимость 1000 рублей. Длительность 1час',
+        start_parameter: 'trading_bots',
+        title: 'Набор торговых ботов',
+        description: 'Три торговых бота на языке Lua торгового терминала Quik, zip-архив',
         currency: 'RUB',
-        photo_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcThWVMksAXRtRQJn3oHFWyz9FMusRty4pQX5Iobe8OfMEJmRzpD&usqp=CAU',
+        photo_url: 'https://avatars.mds.yandex.net/get-pdb/1352825/885173cc-dacd-4375-beb9-5dc5ee6553fd/s1200?webp=false',
         need_shipping_address: false,
         is_flexible: false,
         prices: [
-            { label: 'Онлайн консультация', amount: 6790000 }
+            { label: 'Набор торговых роботов', amount: 6790000 }
         ],
         payload: {}
     
     };
 
 
-    bot.start((ctx) => {
-        ctx.reply(startMsg, buyButton)
-    })
-    
+    bot.start((ctx) => {ctx.reply(startMsg, qaButtons)})
+    bot.action('start', (ctx) => {ctx.reply(startMsg, qaButtons);ctx.answerCbQuery()})
+    bot.action('description', (ctx) => {ctx.reply(desctiptionMsg, backButton);ctx.answerCbQuery()})
+    bot.action('price', (ctx) => {ctx.reply("priceMsg", backButton);ctx.answerCbQuery()})
+    bot.action('modes', (ctx) => {ctx.reply("modesMsg", backButton);ctx.answerCbQuery()})
+    bot.action('example', (ctx) => {ctx.reply(exampleMsg, backButton);ctx.answerCbQuery()})
+    bot.action('profit', (ctx) => {genTradeGraph ('m', ctx);ctx.answerCbQuery()})
+    bot.action('channel', (ctx) => {ctx.reply("channelMsg", backButton);ctx.answerCbQuery()})
     bot.action('buy', (ctx) => ctx.replyWithInvoice(invoice));
-    bot.command('buy', (ctx) => ctx.replyWithInvoice(invoice));
-    bot.command('profit', (ctx) => {
-        genTradeGraph ('m')
-    })
-    bot.command('info', (ctx) => {
-        ctx.reply(infoMsg, buyButton, { parse_mode: 'HTML' })
-    })
-
-
 
 
 
@@ -131,12 +160,11 @@ function merchantBot() {
         }
     })
 
-
     bot.launch()
 }
 
 
-function genTradeGraph (period) {
+function genTradeGraph (period, ctx = null) {
     let xy = {}
     const quikLog = process.env.QUIK_LOGFILE;
     const yMcxFile = tgMsgs + 'micex' + period + ".indx"
@@ -232,10 +260,10 @@ function genTradeGraph (period) {
 */
     //console.log(res)
     
-    drawGraph (x, y1, y2, m, period)
+    return drawGraph (x, y1, y2, m, period, ctx)
 }
 
-function drawGraph (x, y1, y2, m, period) {
+function drawGraph (x, y1, y2, m, period, ctx) {
 
 
     let title = ""
@@ -389,16 +417,17 @@ function drawGraph (x, y1, y2, m, period) {
     };
 
     const image = await canvasRenderService.renderToBuffer(configuration);
-   
-    
-    if(devMode) {
-        fs.writeFileSync(tgMsgs + "test.png", image)
-   
-    } else {
-        bot.telegram.sendPhoto(channelId, {source: image});
 
+   
 
-    }
+	if (ctx == null) {
+		if(devMode) {
+			fs.writeFileSync(tgMsgs + "test.png", image)
+		} else {
+			bot.telegram.sendPhoto(channelId, {source: image});
+		}
+	} else ctx.replyWithPhoto({ source: image })
+
     })(); 
 
 }
