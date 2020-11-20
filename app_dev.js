@@ -10,8 +10,12 @@ const fs = require('fs');
 const iconv = require('iconv-lite');
 const cronJob = require('cron').CronJob;
 const Chart = require('chart.js');
+//const ChartFinancial = require('./dist/chartjs-chart-financial.js');
+
 const { CanvasRenderService } = require('chartjs-node-canvas');        
 const { title } = require("process");
+
+const luxon = require("luxon");
 
 
 // Get environment variables
@@ -35,8 +39,8 @@ if (!devMode) {
 	merchantBot()
 } else {
 
-    //genTradeGraph ('m') 
-    merchantBot()
+    genTradeGraph ('d') 
+    //merchantBot()
 
     
 
@@ -260,10 +264,10 @@ function genTradeGraph (period, ctx = null) {
 */
     //console.log(res)
     
-    return drawGraph (x, y1, y2, m, period, ctx)
+    return drawGraph (x, y1, y2, m, period, ctx, cum)
 }
 
-function drawGraph (x, y1, y2, m, period, ctx) {
+function drawGraph (x, y1, y2, m, period, ctx, cum) {
 
 
     let title = ""
@@ -275,13 +279,20 @@ function drawGraph (x, y1, y2, m, period, ctx) {
     const height = 400;
 
     const chartJsFactory = () => {
+        //require('chart.js');
         require('chartjs-plugin-datalabels');
-        delete require.cache[require.resolve('chart.js')];
+        require('./dist/chartjs-chart-financial.js');
+        //delete require.cache[require.resolve('chart.js')];
         delete require.cache[require.resolve('chartjs-plugin-datalabels')];
+        delete require.cache[require.resolve('./dist/chartjs-chart-financial.js')];
         return Chart;
     }
 
     const canvasRenderService = new CanvasRenderService(width, height, undefined, undefined, chartJsFactory);
+
+var barCount = 60;
+var initialDateStr = '01 Apr 2017 00:00 Z';
+
 
     (async () => {
     const configuration = {
@@ -327,6 +338,7 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                     borderWidth: 2,
                     lineTension: 0.3,
                     datalabels: {
+                        //display: false,
                         align: 'end',
                         anchor: 'end',
                         color: 'rgba(54, 162, 135, 1)', //'rgba(75,192, 192, 1)',
@@ -334,7 +346,17 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                 }, 
                 
                 {
+
                     type:"line",
+                    /*
+                    type: 'candlestick',
+                    data: {
+                        datasets: [{
+                            label: 'CHRT - Chart.js Corporation',
+                            data: getRandomData(initialDateStr, barCount)
+                        }]
+                    },
+                    */
                     yAxisID: 'right-y-axis',
                     //barThickness: 24,
                     label: 'Индекс ММВБ',
@@ -364,8 +386,9 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                 display: true,
                 labels: {
                     fontColor: 'rgba(54, 162, 135, 1)',
-                    //padding: '2, 3, 4, 5',
-                }
+                    //padding: 50, //'2, 3, 4, 5',
+                },
+                
             },   
             scales: {
                 yAxes: [
@@ -377,6 +400,10 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                             beginAtZero: true,
                             callback: (value) => value + "₽",
                             fontColor: 'rgba(104, 143, 133, 1)',
+                            max: cum + cum/5,
+    
+                            //padding: 25,
+
 
                         },
                         gridLines: {
@@ -402,7 +429,8 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                         //stacked: true,
                         gridLines: {
                             color: 'rgba(104, 143, 133, 0.2)',
-                            zeroLineColor: 'rgba(104, 143, 133, 0.5)',                            
+                            zeroLineColor: 'rgba(104, 143, 133, 0.5)',    
+                            //tickMarkLength: 15                          
                         },
                         ticks: {
                             fontColor: 'rgba(104, 143, 133, 1)',
@@ -411,8 +439,8 @@ function drawGraph (x, y1, y2, m, period, ctx) {
                 ],
             },
             plugins: {
+            },
 
-            }
         }
     };
 
@@ -431,6 +459,59 @@ function drawGraph (x, y1, y2, m, period, ctx) {
     })(); 
 
 }
+
+
+
+
+// ************************************* randomizer *******************************************
+var getRandomInt = function(max) {
+	return Math.floor(Math.random() * Math.floor(max));
+};
+
+function randomNumber(min, max) {
+	return Math.random() * (max - min) + min;
+}
+
+function randomBar(date, lastClose) {
+	var open = randomNumber(lastClose * 0.95, lastClose * 1.05).toFixed(2);
+	var close = randomNumber(open * 0.95, open * 1.05).toFixed(2);
+	var high = randomNumber(Math.max(open, close), Math.max(open, close) * 1.1).toFixed(2);
+	var low = randomNumber(Math.min(open, close) * 0.9, Math.min(open, close)).toFixed(2);
+	return {
+		t: date.valueOf(),
+		o: open,
+		h: high,
+		l: low,
+		c: close
+	};
+
+}
+
+function getRandomData(dateStr, count) {
+	var date = luxon.DateTime.fromRFC2822(dateStr);
+	var data = [randomBar(date, 30)];
+	while (data.length < count) {
+		date = date.plus({days: 1});
+		if (date.weekday <= 5) {
+			data.push(randomBar(date, data[data.length - 1].c));
+		}
+	}
+	return data;
+}
+
+//******************************************************************************************************************* */
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function streamTrades() {

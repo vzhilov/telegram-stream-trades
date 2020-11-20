@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
-    "chart.js": "^2.9.3",
+    "chart.js": "^2.9.4",
     "chartjs-node-canvas": "^3.0.6",
     "chartjs-plugin-datalabels": "^0.7.0",
     "cron": "^1.8.2",
@@ -12,6 +12,7 @@
     "glob": "^7.1.6",
     "iconv-lite": "^0.6.2",
     "jimp": "^0.14.0",
+    "luxon": "^1.25.0",
     "smart-promisify": "^1.0.5",
     "telegraf": "^3.38.0",
     "telegraf-inline-menu": "^5.1.0",
